@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"log"
@@ -21,43 +21,43 @@ func (l *LimitInfo) Increment() {
 	l.Times++
 }
 
-var GLimitMap = make(map[string]*LimitInfo)
+var cacheLimitMap = make(map[string]*LimitInfo)
 
 func LimitCheck(w http.ResponseWriter, r *http.Request) bool {
-	if !GConfig.Limit.Enable {
+	if !cacheConfig.Limit.Enable {
 		return true
 	}
 	ips := getIps(r)
 	ip := pickIp(ips)
 	info := &LimitInfo{}
-	if _, ok := GLimitMap[ip]; !ok {
-		GLimitMap[ip] = info
-		GLimitMap[ip].Rest()
+	if _, ok := cacheLimitMap[ip]; !ok {
+		cacheLimitMap[ip] = info
+		cacheLimitMap[ip].Rest()
 	} else {
-		info = GLimitMap[ip]
+		info = cacheLimitMap[ip]
 	}
-	if getCurrentTime()-info.LastTime > GConfig.Limit.Period {
+	if getCurrentTime()-info.LastTime > cacheConfig.Limit.Period {
 		info.Rest()
 	} else {
 		info.Increment()
 	}
-	if !isWhiteIp(ip) && info.Times > GConfig.Limit.Times {
-		w.WriteHeader(GConfig.Limit.StatusCode)
-		_, _ = w.Write([]byte(GConfig.Limit.Message))
-		log.Println(r.Method + ": " + r.URL.Path + " -> [" + ip + "]: " + GConfig.Limit.Message)
+	if !isWhiteIp(ip) && info.Times > cacheConfig.Limit.Times {
+		w.WriteHeader(cacheConfig.Limit.StatusCode)
+		_, _ = w.Write([]byte(cacheConfig.Limit.Message))
+		log.Println(r.Method + ": " + r.URL.Path + " -> [" + ip + "]: " + cacheConfig.Limit.Message)
 		return false
 	}
-	if GConfig.Limit.Delay > 0 {
-		time.Sleep(time.Duration(GConfig.Limit.Delay) * time.Millisecond)
+	if cacheConfig.Limit.Delay > 0 {
+		time.Sleep(time.Duration(cacheConfig.Limit.Delay) * time.Millisecond)
 	}
 	return true
 }
 
 func isWhiteIp(ip string) bool {
-	if GConfig.Limit.WhiteIps == nil {
+	if cacheConfig.Limit.WhiteIps == nil {
 		return false
 	}
-	for _, item := range GConfig.Limit.WhiteIps {
+	for _, item := range cacheConfig.Limit.WhiteIps {
 		if strings.TrimSpace(item) == strings.TrimSpace(ip) {
 			return true
 		}

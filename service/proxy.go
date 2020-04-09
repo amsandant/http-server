@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"io"
@@ -9,17 +9,17 @@ import (
 	"strings"
 )
 
-func doProxy(w http.ResponseWriter, r *http.Request, index int) {
+func DoProxy(w http.ResponseWriter, r *http.Request, index int) {
 	// Request remote
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns: 0,
 		},
 	}
-	remoteUrl := GConfig.Proxies[index].Target + strings.Replace(r.RequestURI, GConfig.Proxies[index].Uri, "", 1)
+	remoteUrl := cacheConfig.Proxies[index].Target + strings.Replace(r.RequestURI, cacheConfig.Proxies[index].Uri, "", 1)
 
 	remoteRequest, _ := http.NewRequest(r.Method, remoteUrl, r.Body)
-	remoteUrlPath := GConfig.Proxies[index].Target + remoteRequest.URL.Path
+	remoteUrlPath := cacheConfig.Proxies[index].Target + remoteRequest.URL.Path
 
 	// proxy header
 	remoteRequest.Header = r.Header
@@ -49,7 +49,7 @@ func doProxy(w http.ResponseWriter, r *http.Request, index int) {
 		//_, _ = w.Write(remoteBodyByes)
 		if err != nil {
 			log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : [" + strconv.FormatInt(written, 10) + "]" + err.Error())
-		} else if GConfig.Debug {
+		} else if cacheConfig.Debug {
 			log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + remoteResponse.Status)
 		} else if remoteStatusCode != 200 {
 			log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + remoteResponse.Status)
@@ -64,7 +64,7 @@ func doProxy(w http.ResponseWriter, r *http.Request, index int) {
 }
 
 func handForward(r *http.Request, tr *http.Request, index int) {
-	if !GConfig.Proxies[index].Forward {
+	if !cacheConfig.Proxies[index].Forward {
 		return
 	}
 

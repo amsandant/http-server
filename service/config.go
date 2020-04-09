@@ -1,6 +1,6 @@
-package main
+package service
 
-var GConfig *Config
+var cacheConfig *Config
 
 type Config struct {
 	Port    int         `json:"port"`
