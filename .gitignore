@@ -15,4 +15,5 @@
 # vendor/
 .idea
 /public
-conf.json
+*.json
+http-server*
