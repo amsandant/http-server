@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,7 +22,7 @@ func (l *LimitInfo) Increment() {
 	l.Times++
 }
 
-var cacheLimitMap = make(map[string]*LimitInfo)
+var cacheLimitMap = sync.Map{}
 
 func LimitCheck(w http.ResponseWriter, r *http.Request) bool {
 	if !cacheConfig.Limit.Enable {
@@ -30,11 +31,13 @@ func LimitCheck(w http.ResponseWriter, r *http.Request) bool {
 	ips := getIps(r)
 	ip := pickIp(ips)
 	info := &LimitInfo{}
-	if _, ok := cacheLimitMap[ip]; !ok {
-		cacheLimitMap[ip] = info
-		cacheLimitMap[ip].Rest()
+	if _, ok := cacheLimitMap.Load(ip); !ok {
+		cacheLimitMap.Store(ip, info)
+		value, _ := cacheLimitMap.Load(ip)
+		value.(*LimitInfo).Rest()
 	} else {
-		info = cacheLimitMap[ip]
+		value, _ := cacheLimitMap.Load(ip)
+		info = value.(*LimitInfo)
 	}
 	if getCurrentTime()-info.LastTime > cacheConfig.Limit.Period {
 		info.Rest()
