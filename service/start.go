@@ -53,15 +53,25 @@ func Start() {
 	for i, proxy := range cacheConfig.Proxies {
 		log.Println("ListenAndProxy[" + strconv.Itoa(i) + "]: " + proxy.Uri + " -> " + proxy.Target)
 	}
+	if cacheConfig.CrtFile != "" && cacheConfig.KeyFile != "" {
+		if runtime.GOOS == "windows" {
+			_ = exec.Command("cmd", "/c", "start", "https://localhost"+lPort).Start()
+		}
+		err := http.ListenAndServeTLS(lPort, cacheConfig.CrtFile, cacheConfig.KeyFile, mux)
+		if err != nil {
+			log.Fatal("ListenAndServe " + lPort + " -> " + err.Error())
+		}
+	} else {
+		if runtime.GOOS == "windows" {
+			_ = exec.Command("cmd", "/c", "start", "http://localhost"+lPort).Start()
+		}
 
-	if runtime.GOOS == "windows" {
-		_ = exec.Command("cmd", "/c", "start", "http://localhost"+lPort).Start()
+		err := http.ListenAndServe(lPort, mux)
+		if err != nil {
+			log.Fatal("ListenAndServe " + lPort + " -> " + err.Error())
+		}
 	}
 
-	err := http.ListenAndServe(lPort, mux)
-	if err != nil {
-		log.Fatal("ListenAndServe " + lPort + " -> " + err.Error())
-	}
 }
 
 func readConfig() {

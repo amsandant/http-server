@@ -4,6 +4,8 @@ var cacheConfig *Config
 
 type Config struct {
 	Port    int         `json:"port"`
+	CrtFile string      `json:"crtFile"`
+	KeyFile string      `json:"keyFile"`
 	Static  StaticItem  `json:"static"`
 	Proxies []ProxyItem `json:"proxies"`
 	Limit   LimitItem   `json:"limit"`
