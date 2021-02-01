@@ -46,9 +46,11 @@ func NewDefaultConfig() Config {
 			Forward: false,
 		}},
 		Limit: LimitItem{
+			Enable:     false,
+			Delay:      0,
 			Period:     10000,
 			Times:      20,
-			Enable:     false,
+			WhiteIps:   []string{},
 			StatusCode: 403,
 			Message:    "403 Forbidden",
 		},
