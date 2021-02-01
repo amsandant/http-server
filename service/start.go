@@ -83,7 +83,7 @@ func Start() {
 }
 
 func readConfig() {
-	config := newConfig()
+	config := NewDefaultConfig()
 	cacheConfig = &config
 	flag.IntVar(&cacheConfig.Port, "port", cacheConfig.Port, "Port")
 	flag.BoolVar(&cacheConfig.Debug, "debug", cacheConfig.Debug, "Debug")
@@ -119,27 +119,6 @@ func readConfig() {
 	cacheConfig.Proxies = proxies
 }
 
-func newConfig() Config {
-	return Config{
-		Port: 18080,
-		Static: StaticItem{
-			Dir:     "",
-			History: false,
-		},
-		Proxies: []ProxyItem{{
-			Uri:     "",
-			Target:  "",
-			Forward: false,
-		}},
-		Limit: LimitItem{
-			Period:     10000,
-			Times:      20,
-			Enable:     false,
-			StatusCode: 403,
-			Message:    "403 Forbidden",
-		},
-	}
-}
 func isProxy(url string) int {
 	for index, proxy := range cacheConfig.Proxies {
 		if url == proxy.Uri {

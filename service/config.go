@@ -32,3 +32,25 @@ type ProxyItem struct {
 	Target  string `json:"target"`
 	Forward bool   `json:"forward"`
 }
+
+func NewDefaultConfig() Config {
+	return Config{
+		Port: 18080,
+		Static: StaticItem{
+			Dir:     "",
+			History: false,
+		},
+		Proxies: []ProxyItem{{
+			Uri:     "",
+			Target:  "",
+			Forward: false,
+		}},
+		Limit: LimitItem{
+			Period:     10000,
+			Times:      20,
+			Enable:     false,
+			StatusCode: 403,
+			Message:    "403 Forbidden",
+		},
+	}
+}
