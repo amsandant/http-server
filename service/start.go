@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -19,6 +20,13 @@ const configFile = "conf.json"
 
 func Start() {
 	readConfig()
+	if cacheConfig.Debug {
+		infoBytes, _ := json.Marshal(cacheConfig)
+		var str bytes.Buffer
+		_ = json.Indent(&str, infoBytes, "", "  ")
+		log.Printf("%s\n%s", "conf.json", str.String())
+	}
+
 	lPort := ":" + strconv.Itoa(cacheConfig.Port)
 	dir, _ := os.Getwd()
 	cacheConfig.Static.Dir = strings.TrimSpace(cacheConfig.Static.Dir)
@@ -75,48 +83,26 @@ func Start() {
 }
 
 func readConfig() {
-	cacheConfig = &Config{
-		Port: 18080,
-		Static: StaticItem{
-			Dir:     "",
-			History: false,
-		},
-		Proxies: nil,
-		Limit: LimitItem{
-			Period:     10000,
-			Times:      20,
-			Enable:     false,
-			StatusCode: 403,
-			Message:    "403 Forbidden",
-		},
-	}
-	fromFile := false
+	config := newConfig()
+	cacheConfig = &config
+	flag.IntVar(&cacheConfig.Port, "port", cacheConfig.Port, "Port")
+	flag.BoolVar(&cacheConfig.Debug, "debug", cacheConfig.Debug, "Debug")
+	flag.StringVar(&cacheConfig.Static.Dir, "static.dir", cacheConfig.Static.Dir, "StaticItem Directory")
+	flag.BoolVar(&cacheConfig.Static.History, "static.history", cacheConfig.Static.History, "History router")
+	flag.StringVar(&cacheConfig.Proxies[0].Uri, "proxy.uri", cacheConfig.Proxies[0].Uri, "ProxyItem uri")
+	flag.StringVar(&cacheConfig.Proxies[0].Target, "proxy.target", cacheConfig.Proxies[0].Target, "ProxyItem target")
+	flag.BoolVar(&cacheConfig.Proxies[0].Forward, "proxy.forward", cacheConfig.Proxies[0].Forward, "ProxyItem forward")
+
+	flag.Parse()
+
 	configBytes, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		configBytes, err = ioutil.ReadFile(getExecPath() + configFile)
 	}
 	if err == nil {
-		err = json.Unmarshal(configBytes, cacheConfig)
-		if err == nil {
-			fromFile = true
-		}
+		_ = json.Unmarshal(configBytes, cacheConfig)
 	}
 
-	if !fromFile {
-		cacheConfig.Proxies = []ProxyItem{{
-			Uri:     "/proxy",
-			Target:  "",
-			Forward: false,
-		}}
-		flag.IntVar(&cacheConfig.Port, "port", cacheConfig.Port, "Port")
-		flag.BoolVar(&cacheConfig.Debug, "debug", cacheConfig.Debug, "Debug")
-		flag.StringVar(&cacheConfig.Static.Dir, "static.dir", cacheConfig.Static.Dir, "StaticItem Directory")
-		flag.BoolVar(&cacheConfig.Static.History, "static.history", cacheConfig.Static.History, "History router")
-		flag.StringVar(&cacheConfig.Proxies[0].Uri, "proxy.uri", cacheConfig.Proxies[0].Uri, "ProxyItem uri")
-		flag.StringVar(&cacheConfig.Proxies[0].Target, "proxy.target", cacheConfig.Proxies[0].Target, "ProxyItem target")
-		flag.BoolVar(&cacheConfig.Proxies[0].Forward, "proxy.forward", cacheConfig.Proxies[0].Forward, "ProxyItem forward")
-		flag.Parse()
-	}
 	proxies := make([]ProxyItem, 0)
 	for _, proxy := range cacheConfig.Proxies {
 		if strings.TrimSpace(proxy.Uri) == "" || strings.TrimSpace(proxy.Target) == "" {
@@ -133,6 +119,27 @@ func readConfig() {
 	cacheConfig.Proxies = proxies
 }
 
+func newConfig() Config {
+	return Config{
+		Port: 18080,
+		Static: StaticItem{
+			Dir:     "",
+			History: false,
+		},
+		Proxies: []ProxyItem{{
+			Uri:     "",
+			Target:  "",
+			Forward: false,
+		}},
+		Limit: LimitItem{
+			Period:     10000,
+			Times:      20,
+			Enable:     false,
+			StatusCode: 403,
+			Message:    "403 Forbidden",
+		},
+	}
+}
 func isProxy(url string) int {
 	for index, proxy := range cacheConfig.Proxies {
 		if url == proxy.Uri {
