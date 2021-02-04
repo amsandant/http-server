@@ -47,9 +47,9 @@ func Start() {
 		if cacheConfig.Static.History && request.URL.Path != "/" {
 			filePath := strings.ReplaceAll(dir+request.URL.Path, "/", string(filepath.Separator))
 			if !isExist(filePath) {
-				request.URL.Path = "/"
-				//http.Redirect(writer, request, "/", http.StatusFound)
-				//return
+				//request.URL.Path = "/"
+				writeHistory(dir, writer)
+				return
 			}
 		}
 		fileHandler.ServeHTTP(writer, request)
@@ -80,6 +80,25 @@ func Start() {
 		}
 	}
 
+}
+
+func writeHistory(dir string, writer http.ResponseWriter) {
+	indexPath := dir + "/index.html"
+	indexFile, err := os.Open(indexPath)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		_, _ = writer.Write([]byte(err.Error()))
+		return
+	}
+	indexContent, err := ioutil.ReadAll(indexFile)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		_, _ = writer.Write([]byte(err.Error()))
+		return
+	}
+	writer.WriteHeader(http.StatusNotFound)
+	_, _ = writer.Write(indexContent)
+	_ = indexFile.Close()
 }
 
 func readConfig() {
