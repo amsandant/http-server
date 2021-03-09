@@ -84,7 +84,7 @@ func handForward(r *http.Request, tr *http.Request, index int) {
 	}
 	host, port, err := net.SplitHostPort(r.Host)
 	if err != nil {
-		return
+		host = r.Host
 	}
 
 	tr.Header.Set("x-forwarded-for", forward)
