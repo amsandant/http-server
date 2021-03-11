@@ -7,17 +7,20 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func DoProxy(w http.ResponseWriter, r *http.Request, index int) {
+	ip := pickIp(getIps(r))
 	// Request remote
 	client := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns: 0,
-		},
+		Timeout: time.Duration(cacheConfig.Proxies[index].Timeout) * time.Second,
 	}
-	remoteUrl := cacheConfig.Proxies[index].Target + strings.Replace(r.RequestURI, cacheConfig.Proxies[index].Uri, "", 1)
+	defer func(cli *http.Client) {
+		cli.CloseIdleConnections()
+	}(client)
 
+	remoteUrl := cacheConfig.Proxies[index].Target + strings.Replace(r.RequestURI, cacheConfig.Proxies[index].Uri, "", 1)
 	remoteRequest, _ := http.NewRequest(r.Method, remoteUrl, r.Body)
 	remoteUrlPath := cacheConfig.Proxies[index].Target + remoteRequest.URL.Path
 
@@ -26,13 +29,10 @@ func DoProxy(w http.ResponseWriter, r *http.Request, index int) {
 	// forward
 	handForward(r, remoteRequest, index)
 	remoteResponse, err := client.Do(remoteRequest)
-	defer func() {
-		if remoteResponse != nil {
-			_ = remoteResponse.Body.Close()
-		}
-	}()
-
 	if err == nil {
+		defer func(res *http.Response) {
+			_ = res.Body.Close()
+		}(remoteResponse)
 		// Set Headers
 		remoteHeaders := remoteResponse.Header
 		for key, value := range remoteHeaders {
@@ -45,21 +45,17 @@ func DoProxy(w http.ResponseWriter, r *http.Request, index int) {
 		w.WriteHeader(remoteStatusCode)
 		//Set body
 		written, err := io.Copy(w, remoteResponse.Body)
-		//remoteBodyByes, _ := ioutil.ReadAll(remoteResponse.Body)
-		//_, _ = w.Write(remoteBodyByes)
 		if err != nil {
-			log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : [" + strconv.FormatInt(written, 10) + "]" + err.Error())
+			log.Println("[" + ip + "] " + r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : [" + strconv.FormatInt(written, 10) + "]" + err.Error())
 		} else if cacheConfig.Debug {
-			log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + remoteResponse.Status)
+			log.Println("[" + ip + "] " + r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + remoteResponse.Status)
 		} else if remoteStatusCode != 200 {
-			log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + remoteResponse.Status)
+			log.Println("[" + ip + "] " + r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + remoteResponse.Status)
 		}
 	} else {
-		//handler := http.NotFoundHandler()
-		//handler.ServeHTTP(w, r)
 		w.WriteHeader(http.StatusNotImplemented)
 		_, _ = w.Write([]byte(err.Error()))
-		log.Println(r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + err.Error())
+		log.Println("[" + ip + "] " + r.Method + ": " + r.URL.Path + " -> " + remoteUrlPath + " : " + err.Error())
 	}
 }
 

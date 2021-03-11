@@ -47,7 +47,7 @@ func LimitCheck(w http.ResponseWriter, r *http.Request) bool {
 	if !isWhiteIp(ip) && info.Times > cacheConfig.Limit.Times {
 		w.WriteHeader(cacheConfig.Limit.StatusCode)
 		_, _ = w.Write([]byte(cacheConfig.Limit.Message))
-		log.Println(r.Method + ": " + r.URL.Path + " -> [" + ip + "]: " + cacheConfig.Limit.Message)
+		log.Println("[" + ip + "] " + r.Method + ": " + r.URL.Path + " -> : " + cacheConfig.Limit.Message)
 		return false
 	}
 	if cacheConfig.Limit.Delay > 0 {

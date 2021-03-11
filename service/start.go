@@ -17,6 +17,7 @@ import (
 )
 
 const configFile = "conf.json"
+const IdleTimeout = 0
 
 func Start() {
 	readConfig()
@@ -65,7 +66,12 @@ func Start() {
 		if runtime.GOOS == "windows" {
 			_ = exec.Command("cmd", "/c", "start", "https://localhost"+lPort).Start()
 		}
-		err := http.ListenAndServeTLS(lPort, cacheConfig.CrtFile, cacheConfig.KeyFile, mux)
+		server := http.Server{
+			Addr:        lPort,
+			Handler:     mux,
+			IdleTimeout: IdleTimeout,
+		}
+		err := server.ListenAndServeTLS(cacheConfig.CrtFile, cacheConfig.KeyFile)
 		if err != nil {
 			log.Fatal("ListenAndServe " + lPort + " -> " + err.Error())
 		}
@@ -73,8 +79,12 @@ func Start() {
 		if runtime.GOOS == "windows" {
 			_ = exec.Command("cmd", "/c", "start", "http://localhost"+lPort).Start()
 		}
-
-		err := http.ListenAndServe(lPort, mux)
+		server := http.Server{
+			Addr:        lPort,
+			Handler:     mux,
+			IdleTimeout: IdleTimeout,
+		}
+		err := server.ListenAndServe()
 		if err != nil {
 			log.Fatal("ListenAndServe " + lPort + " -> " + err.Error())
 		}
@@ -111,6 +121,7 @@ func readConfig() {
 	flag.StringVar(&cacheConfig.Proxies[0].Uri, "proxy.uri", cacheConfig.Proxies[0].Uri, "ProxyItem uri")
 	flag.StringVar(&cacheConfig.Proxies[0].Target, "proxy.target", cacheConfig.Proxies[0].Target, "ProxyItem target")
 	flag.BoolVar(&cacheConfig.Proxies[0].Forward, "proxy.forward", cacheConfig.Proxies[0].Forward, "ProxyItem forward")
+	flag.IntVar(&cacheConfig.Proxies[0].Timeout, "proxy.timeout", cacheConfig.Proxies[0].Timeout, "代理超时时间,默认0永不超时")
 
 	flag.Parse()
 

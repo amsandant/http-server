@@ -31,6 +31,7 @@ type ProxyItem struct {
 	Uri     string `json:"uri"`
 	Target  string `json:"target"`
 	Forward bool   `json:"forward"`
+	Timeout int    `json:"timeout"`
 }
 
 func NewDefaultConfig() Config {
