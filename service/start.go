@@ -14,10 +14,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const configFile = "conf.json"
-const IdleTimeout = 0
+const IdleTimeout = 10 * time.Second
 
 func Start() {
 	readConfig()
